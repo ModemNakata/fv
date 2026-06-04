@@ -1,0 +1,11 @@
+session_name: tmuxp-s
+windows:
+  - window_name: dev
+    layout: tiled
+    panes:
+      - shell_command:
+          - docker compose up 
+      - shell_command:
+          - cd nxtjs && bun dev -p 1929 -H 0.0.0.0
+      - shell_command:
+          - bacon run-long
