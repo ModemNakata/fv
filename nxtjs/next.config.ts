@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
 
   /* use export output to /dist for production static files generation */
-  // output: 'export',
+  output: 'export',
 };
 
 
