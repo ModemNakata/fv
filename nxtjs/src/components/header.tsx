@@ -1,13 +1,37 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
-import { MagnifyingGlassIcon, List, Bell, UserCircle } from "@phosphor-icons/react"
+import { MagnifyingGlassIcon, List, Bell, UserCircle, ArrowLeft } from "@phosphor-icons/react"
 import { Button } from "@/components/ui/button"
 
 function Header() {
+  const [searchOpen, setSearchOpen] = useState(false)
+
   return (
-    <header className="flex h-14 items-center justify-between border-b border-border bg-background px-4 sm:px-6">
-      <div className="flex items-center gap-3">
+    <header className="relative flex h-14 items-center justify-between border-b border-border bg-background px-4 sm:px-6">
+      {/* Mobile search overlay */}
+      {searchOpen && (
+        <div className="absolute inset-x-0 inset-y-0 z-50 flex items-center gap-2 bg-background px-4 sm:hidden">
+          <Button variant="ghost" size="icon-sm" onClick={() => setSearchOpen(false)}>
+            <ArrowLeft className="size-5" />
+          </Button>
+          <form className="flex flex-1 items-center gap-2 rounded-2xl border border-border bg-muted/50 px-3 py-1.5">
+            <input
+              type="text"
+              placeholder="Search"
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              autoFocus
+            />
+            <button type="submit" className="cursor-pointer">
+              <MagnifyingGlassIcon className="size-4 shrink-0 text-muted-foreground" />
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Left: hamburger + logo (hide on mobile when search is open) */}
+      <div className={`flex items-center gap-3 ${searchOpen ? "invisible sm:visible" : ""}`}>
         <Button variant="ghost" size="icon-sm" className="-ml-1.5">
           <List className="size-5" />
         </Button>
@@ -20,8 +44,24 @@ function Header() {
           </span>
         </Link>
       </div>
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon-sm">
+
+      {/* Center: desktop search bar */}
+      <div className="hidden sm:flex flex-1 justify-center px-4">
+        <form className="flex w-full max-w-md items-center gap-2 rounded-2xl border border-border bg-muted/50 px-3 py-1.5">
+          <input
+            type="text"
+            placeholder="Search"
+            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          />
+          <button type="submit" className="cursor-pointer">
+            <MagnifyingGlassIcon className="size-4 shrink-0 text-muted-foreground" />
+          </button>
+        </form>
+      </div>
+
+      {/* Right: icons (hide on mobile when search is open) */}
+      <div className={`flex items-center gap-2 ${searchOpen ? "invisible sm:visible" : ""}`}>
+        <Button variant="ghost" size="icon-sm" className="sm:hidden" onClick={() => setSearchOpen(true)}>
           <MagnifyingGlassIcon className="size-5" />
         </Button>
         <Button variant="ghost" size="icon-sm">
