@@ -1,117 +1,59 @@
-"use client";
+import { cn } from "@/lib/utils"
+import { Header } from "@/components/header"
+import { VideoCard, type Video } from "@/components/video-card"
 
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Database, Lightning, Palette, Cube, Stack, Sun, Moon } from "@phosphor-icons/react";
+const categories = [
+  "All", "Rust", "Next.js", "UI Design", "Animations", "Backend",
+  "TypeScript", "Databases", "DevOps", "Tailwind CSS",
+]
 
-type Health = {
-  db_connected: boolean;
-  latency_ms: number;
-};
-
-const colors = [
-  { name: "primary", class: "bg-primary" },
-  { name: "secondary", class: "bg-secondary" },
-  { name: "accent", class: "bg-accent" },
-  { name: "muted", class: "bg-muted" },
-  { name: "destructive", class: "bg-destructive" },
-  { name: "chart-1", class: "bg-chart-1" },
-  { name: "chart-2", class: "bg-chart-2" },
-  { name: "chart-3", class: "bg-chart-3" },
-  { name: "chart-4", class: "bg-chart-4" },
-  { name: "chart-5", class: "bg-chart-5" },
-];
-
-const variants = ["default", "secondary", "outline", "ghost", "destructive", "link"] as const;
+const videos: Video[] = [
+  { id: "1", title: "Building a full-stack app with Actix and Next.js in 2026", channel: "FetishDev", channelInitials: "FD", views: "142K", timestamp: "2 days ago", duration: "24:15", gradient: "bg-gradient-to-br from-primary to-chart-3" },
+  { id: "2", title: "Rust borrow checker explained with real examples", channel: "RustMafia", channelInitials: "RM", views: "89K", timestamp: "5 days ago", duration: "18:42", gradient: "bg-gradient-to-br from-chart-5 via-chart-2 to-chart-1" },
+  { id: "3", title: "shadcn/ui v4 — what's new in radix-rhea", channel: "UILabs", channelInitials: "UL", views: "56K", timestamp: "1 week ago", duration: "12:08", gradient: "bg-gradient-to-br from-purple-500 to-pink-500" },
+  { id: "4", title: "Tailwind CSS v4 deep dive: no config needed", channel: "TailwindTips", channelInitials: "TT", views: "231K", timestamp: "3 days ago", duration: "31:50", gradient: "bg-gradient-to-br from-sky-400 to-cyan-600" },
+  { id: "5", title: "PostgreSQL indexing strategies for high performance", channel: "DBWizards", channelInitials: "DW", views: "73K", timestamp: "6 days ago", duration: "15:22", gradient: "bg-gradient-to-br from-amber-500 to-orange-600" },
+  { id: "6", title: "React 19 Server Components: the mental model", channel: "ReactDeepDive", channelInitials: "RD", views: "198K", timestamp: "4 days ago", duration: "27:35", gradient: "bg-gradient-to-br from-emerald-400 to-teal-600" },
+  { id: "7", title: "Nginx as a reverse proxy for Rust backends", channel: "InfraOps", channelInitials: "IO", views: "41K", timestamp: "1 week ago", duration: "20:11", gradient: "bg-gradient-to-br from-slate-600 to-zinc-800" },
+  { id: "8", title: "TypeScript 5.8 satisfies operator and branded types", channel: "TypeScriptPro", channelInitials: "TP", views: "67K", timestamp: "2 weeks ago", duration: "14:55", gradient: "bg-gradient-to-br from-blue-500 to-indigo-700" },
+  { id: "9", title: "Docker Compose for local development done right", channel: "FetishDev", channelInitials: "FD", views: "104K", timestamp: "3 days ago", duration: "22:30", gradient: "bg-gradient-to-br from-primary/80 to-chart-4" },
+  { id: "10", title: "CSS container queries in production: a case study", channel: "UILabs", channelInitials: "UL", views: "38K", timestamp: "5 days ago", duration: "16:48", gradient: "bg-gradient-to-br from-violet-500 to-fuchsia-600" },
+  { id: "11", title: "Building a YouTube clone with Next.js and shadcn", channel: "BuildWithMe", channelInitials: "BW", views: "312K", timestamp: "1 day ago", duration: "42:07", gradient: "bg-gradient-to-br from-red-500 to-rose-600" },
+  { id: "12", title: "Actix middleware patterns you should know", channel: "RustMafia", channelInitials: "RM", views: "55K", timestamp: "1 week ago", duration: "19:33", gradient: "bg-gradient-to-br from-lime-500 to-green-700" },
+  { id: "13", title: "Responsive design with CSS Grid: beyond basics", channel: "LayoutPro", channelInitials: "LP", views: "87K", timestamp: "2 days ago", duration: "25:14", gradient: "bg-gradient-to-br from-cyan-400 to-blue-600" },
+  { id: "14", title: "Why Radix UI primitives win over headless UI", channel: "ReactDeepDive", channelInitials: "RD", views: "43K", timestamp: "4 days ago", duration: "13:59", gradient: "bg-gradient-to-br from-pink-400 to-rose-600" },
+  { id: "15", title: "Zero-downtime migrations with SQLx", channel: "DBWizards", channelInitials: "DW", views: "29K", timestamp: "2 weeks ago", duration: "11:36", gradient: "bg-gradient-to-br from-yellow-500 to-amber-700" },
+  { id: "16", title: "Phosphor icons: the best icon library you aren't using", channel: "FetishDev", channelInitials: "FD", views: "22K", timestamp: "8 days ago", duration: "9:18", gradient: "bg-gradient-to-br from-primary to-sky-500" },
+]
 
 export default function Home() {
-  const [health, setHealth] = useState<Health | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/api/health")
-      .then((r) => r.json())
-      .then(setHealth)
-      .catch((e: Error) => setError(e.message));
-  }, []);
-
   return (
-    <div className="flex flex-col items-center gap-12 py-16 px-4 max-w-2xl mx-auto relative">
-
-      {/* Hero */}
-      <div className="flex flex-col items-center gap-1.5 text-center">
-        <div className="flex items-center gap-2 text-primary">
-          <Cube size={28} weight="duotone" />
-          <Stack size={28} weight="duotone" />
-        </div>
-        <h1 className="text-3xl font-bold tracking-tight">Actix + Next.js</h1>
-        <p className="text-muted-foreground text-sm max-w-sm">
-          Monorepo boilerplate with PostgreSQL, nginx, shadcn, and Tailwind v4.
-        </p>
-      </div>
-
-      {/* Health status */}
-      <div className="w-full bg-card border border-border rounded-2xl p-5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Database size={20} weight="duotone" className="text-primary" />
-          <span className="text-sm font-medium">PostgreSQL</span>
-        </div>
-        {error && <span className="text-destructive text-sm font-semibold">Error</span>}
-        {!health && !error && <span className="text-muted-foreground text-sm">Checking…</span>}
-        {health && (
-          <div className="flex items-center gap-2.5">
-            <span className="text-sm text-muted-foreground">{health.latency_microseconds}μs</span>
-            <span
-              className={
-                "text-xs font-bold px-2 py-0.5 rounded-full " +
-                (health.db_connected
-                  ? "bg-primary/15 text-primary"
-                  : "bg-destructive/15 text-destructive")
-              }
-            >
-              {health.db_connected ? "Connected" : "Disconnected"}
-            </span>
+    <div className="flex min-h-full flex-col">
+      <Header />
+      <main className="flex-1">
+        <div className="sticky top-14 z-40 border-b border-border bg-background/80 px-4 py-2.5 backdrop-blur-md sm:px-6">
+          <div className="flex gap-2 overflow-x-auto scrollbar-none">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                className={cn(
+                  "shrink-0 rounded-full px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors",
+                  cat === "All"
+                    ? "bg-foreground text-background"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                )}
+              >
+                {cat}
+              </button>
+            ))}
           </div>
-        )}
-      </div>
-
-      {/* Buttons */}
-      <section className="w-full space-y-3">
-        <div className="flex items-center gap-2">
-          <Palette size={16} weight="duotone" className="text-primary" />
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            Button variants
-          </h2>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {variants.map((v) => (
-            <Button key={v} variant={v}>{v}</Button>
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-x-4 gap-y-6 px-4 py-6 sm:px-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {videos.map((video) => (
+            <VideoCard key={video.id} video={video} />
           ))}
         </div>
-        <div className="flex flex-wrap gap-2">
-          {variants.map((v) => (
-            <Button key={v} variant={v} size="sm">{v}</Button>
-          ))}
-        </div>
-      </section>
-
-      {/* Color palette */}
-      <section className="w-full space-y-3">
-        <div className="flex items-center gap-2">
-          <Palette size={16} weight="duotone" className="text-primary" />
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            Color palette
-          </h2>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {colors.map((c) => (
-            <div key={c.name} className="flex flex-col items-center gap-1.5">
-              <div className={"size-10 rounded-lg border border-border " + c.class} />
-              <span className="text-[11px] text-muted-foreground">{c.name}</span>
-            </div>
-          ))}
-        </div>
-      </section>
+      </main>
     </div>
-  );
+  )
 }
