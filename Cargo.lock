@@ -423,19 +423,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "boilerplate-monotrepo"
-version = "0.1.0"
-dependencies = [
- "actix-web",
- "dotenvy",
- "env_logger",
- "log",
- "sea-orm",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "borsh"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -866,6 +853,19 @@ dependencies = [
  "concurrent-queue",
  "parking",
  "pin-project-lite",
+]
+
+[[package]]
+name = "fevidc"
+version = "0.8.8"
+dependencies = [
+ "actix-web",
+ "dotenvy",
+ "env_logger",
+ "log",
+ "sea-orm",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
