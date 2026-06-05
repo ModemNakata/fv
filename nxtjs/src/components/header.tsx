@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button"
 
 function Header() {
   return (
-    <header className="sticky top-0 z-50 flex h-14 items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur-md sm:px-6">
+    <header className="flex h-14 items-center justify-between border-b border-border bg-background px-4 sm:px-6">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon-sm" className="-ml-1.5">
-          <List />
+          <List className="size-5" />
         </Button>
         <Link href="/" className="flex items-center gap-0">
           <span className="text-lg font-bold leading-none tracking-tight">
@@ -22,13 +22,13 @@ function Header() {
       </div>
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon-sm">
-          <MagnifyingGlassIcon />
+          <MagnifyingGlassIcon className="size-5" />
         </Button>
         <Button variant="ghost" size="icon-sm">
-          <Bell />
+          <Bell className="size-5" />
         </Button>
         <Button variant="ghost" size="icon-sm">
-          <UserCircle />
+          <UserCircle className="size-5" />
         </Button>
       </div>
     </header>
