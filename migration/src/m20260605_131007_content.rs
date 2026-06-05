@@ -1,0 +1,348 @@
+use sea_orm_migration::prelude::{extension::postgres::Type, *};
+
+#[derive(DeriveMigrationName)]
+pub struct Migration;
+
+#[async_trait::async_trait]
+impl MigrationTrait for Migration {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .create_type(
+                Type::create()
+                    .as_enum(Alias::new("content_type"))
+                    .values(vec![Alias::new("video"), Alias::new("image_set")])
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_type(
+                Type::create()
+                    .as_enum(Alias::new("content_status"))
+                    .values(vec![
+                        Alias::new("uploading"),
+                        Alias::new("processing"),
+                        Alias::new("ready"),
+                        Alias::new("failed"),
+                    ])
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_type(
+                Type::create()
+                    .as_enum(Alias::new("content_visibility"))
+                    .values(vec![
+                        Alias::new("public"),
+                        Alias::new("unlisted"),
+                        Alias::new("private"),
+                    ])
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(Alias::new("content_items"))
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(Alias::new("id"))
+                            .uuid()
+                            .not_null()
+                            .default(Expr::cust("gen_random_uuid()"))
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("uploader_id"))
+                            .uuid()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("type"))
+                            .custom(Alias::new("content_type"))
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("title"))
+                            .string_len(255)
+                            .not_null(),
+                    )
+                    .col(ColumnDef::new(Alias::new("description")).text().null())
+                    .col(
+                        ColumnDef::new(Alias::new("thumbnail_url"))
+                            .string_len(1024)
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("status"))
+                            .custom(Alias::new("content_status"))
+                            .not_null()
+                            .default("uploading"),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("visibility"))
+                            .custom(Alias::new("content_visibility"))
+                            .not_null()
+                            .default("private"),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("created_at"))
+                            .timestamp_with_time_zone()
+                            .not_null()
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("updated_at"))
+                            .timestamp_with_time_zone()
+                            .not_null()
+                            .default(Expr::current_timestamp()),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_content_uploader")
+                            .from(Alias::new("content_items"), Alias::new("uploader_id"))
+                            .to(Alias::new("users"), Alias::new("id"))
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(Alias::new("videos"))
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(Alias::new("content_id"))
+                            .uuid()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("duration_seconds"))
+                            .integer()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("view_count"))
+                            .big_integer()
+                            .default(0),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_video_content")
+                            .from(Alias::new("videos"), Alias::new("content_id"))
+                            .to(Alias::new("content_items"), Alias::new("id"))
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(Alias::new("video_formats"))
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(Alias::new("id"))
+                            .uuid()
+                            .not_null()
+                            .default(Expr::cust("gen_random_uuid()"))
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("video_id"))
+                            .uuid()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("resolution"))
+                            .string_len(50)
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("format"))
+                            .string_len(50)
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("storage_path"))
+                            .string_len(1024)
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("file_size_bytes"))
+                            .big_integer()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("created_at"))
+                            .timestamp_with_time_zone()
+                            .not_null()
+                            .default(Expr::current_timestamp()),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_video_format_video")
+                            .from(Alias::new("video_formats"), Alias::new("video_id"))
+                            .to(Alias::new("videos"), Alias::new("content_id"))
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .index(
+                        Index::create()
+                            .unique()
+                            .name("uq_video_formats")
+                            .col(Alias::new("video_id"))
+                            .col(Alias::new("resolution"))
+                            .col(Alias::new("format")),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(Alias::new("image_sets"))
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(Alias::new("content_id"))
+                            .uuid()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("layout_preference"))
+                            .string_len(50)
+                            .default("gallery"),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_image_set_content")
+                            .from(Alias::new("image_sets"), Alias::new("content_id"))
+                            .to(Alias::new("content_items"), Alias::new("id"))
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(Alias::new("images"))
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(Alias::new("id"))
+                            .uuid()
+                            .not_null()
+                            .default(Expr::cust("gen_random_uuid()"))
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("image_set_id"))
+                            .uuid()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("storage_path"))
+                            .string_len(1024)
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("sort_order"))
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("alt_text"))
+                            .string_len(255)
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("created_at"))
+                            .timestamp_with_time_zone()
+                            .not_null()
+                            .default(Expr::current_timestamp()),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_image_set")
+                            .from(Alias::new("images"), Alias::new("image_set_id"))
+                            .to(Alias::new("image_sets"), Alias::new("content_id"))
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_content_uploader")
+                    .table(Alias::new("content_items"))
+                    .col(Alias::new("uploader_id"))
+                    .col((Alias::new("created_at"), IndexOrder::Desc))
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_content_main_feed")
+                    .table(Alias::new("content_items"))
+                    .col(Alias::new("visibility"))
+                    .col(Alias::new("status"))
+                    .col((Alias::new("created_at"), IndexOrder::Desc))
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_images_ordered")
+                    .table(Alias::new("images"))
+                    .col(Alias::new("image_set_id"))
+                    .col(Alias::new("sort_order"))
+                    .to_owned(),
+            )
+            .await?;
+
+        Ok(())
+    }
+
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .drop_table(Table::drop().table(Alias::new("images")).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(Alias::new("image_sets")).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(Alias::new("video_formats")).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(Alias::new("videos")).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(Alias::new("content_items")).to_owned())
+            .await?;
+        manager
+            .drop_type(Type::drop().name(Alias::new("content_visibility")).to_owned())
+            .await?;
+        manager
+            .drop_type(Type::drop().name(Alias::new("content_status")).to_owned())
+            .await?;
+        manager
+            .drop_type(Type::drop().name(Alias::new("content_type")).to_owned())
+            .await?;
+        Ok(())
+    }
+}
