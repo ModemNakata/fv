@@ -157,7 +157,7 @@ pub async fn sign_up(
         Ok(Some(_)) => {
             return HttpResponse::Conflict().json(AuthResponse {
                 ok: false,
-                error: Some("Username is already taken".to_string()),
+                error: Some("Username unavailable".to_string()),
             });
         }
         Err(e) => {
