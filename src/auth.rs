@@ -123,7 +123,7 @@ pub async fn auth_check(session: Session, state: web::Data<AppState>) -> HttpRes
     })
 }
 
-#[post("/auth/sign-up")]
+#[post("/auth/sign-up")] //register
 pub async fn sign_up(
     session: Session,
     state: web::Data<AppState>,
@@ -209,7 +209,7 @@ pub async fn sign_up(
     })
 }
 
-#[post("/auth/sign-in")]
+#[post("/auth/sign-in")] // login
 pub async fn sign_in(
     session: Session,
     state: web::Data<AppState>,
@@ -264,7 +264,7 @@ pub async fn sign_in(
     })
 }
 
-#[post("/auth/sign-out")]
+#[post("/auth/sign-out")] // logout
 pub async fn sign_out(session: Session) -> HttpResponse {
     session.purge();
     HttpResponse::Ok().json(AuthResponse {
