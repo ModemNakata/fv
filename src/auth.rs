@@ -1,15 +1,15 @@
 use actix_session::Session;
 use actix_web::{HttpResponse, get, post, web};
 use argon2::{Argon2, PasswordHasher, PasswordVerifier};
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, Set};
+use sea_orm::{EntityTrait, QueryFilter, Set, sea_query::{Expr, Func}};
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
-use crate::entity::users;
 use crate::AppState;
+use crate::entity::users;
 
-const SESSION_MAX_AGE_DAYS: u64 = 30;
+const SESSION_MAX_AGE_DAYS: u64 = 3650;
 
 #[derive(Serialize)]
 pub struct AuthCheckResponse {
@@ -49,10 +49,10 @@ fn validate_username(username: &str) -> Result<(), &'static str> {
     }
     // no leading hyphen (covered above by alphanumeric check, but explicit for clarity)
     // no trailing hyphen (covered above)
-    // only lowercase letters, digits, and hyphens
+    // only letters, digits, and hyphens
     for &b in bytes {
-        if !b.is_ascii_lowercase() && !b.is_ascii_digit() && b != b'-' {
-            return Err("Username can only contain lowercase letters, digits, and hyphens");
+        if !b.is_ascii_alphabetic() && !b.is_ascii_digit() && b != b'-' {
+            return Err("Username can only contain letters, digits, and hyphens");
         }
     }
     // no consecutive hyphens (just a good practice)
@@ -89,10 +89,7 @@ fn set_session_auth(session: &Session, user_id: Uuid) {
 }
 
 #[get("/auth/check")]
-pub async fn auth_check(
-    session: Session,
-    state: web::Data<AppState>,
-) -> HttpResponse {
+pub async fn auth_check(session: Session, state: web::Data<AppState>) -> HttpResponse {
     if session_expired(&session) {
         session.purge();
         return HttpResponse::Ok().json(AuthCheckResponse {
@@ -128,10 +125,10 @@ pub async fn sign_up(
     state: web::Data<AppState>,
     body: web::Json<Credentials>,
 ) -> HttpResponse {
-    let username = body.username.trim().to_lowercase();
+    let username = body.username.trim();
     let password = &body.password;
 
-    if let Err(e) = validate_username(&username) {
+    if let Err(e) = validate_username(username) {
         return HttpResponse::BadRequest().json(AuthResponse {
             ok: false,
             error: Some(e.to_string()),
@@ -146,7 +143,10 @@ pub async fn sign_up(
     }
 
     let existing = users::Entity::find()
-        .filter(users::Column::Username.eq(&username))
+        .filter(
+            Expr::expr(Func::lower(Expr::col(users::Column::Username)))
+                .eq(username.to_lowercase()),
+        )
         .one(&state.conn)
         .await;
 
@@ -181,8 +181,8 @@ pub async fn sign_up(
 
     let insert = users::ActiveModel {
         id: Set(user_id),
-        username: Set(username.clone()),
-        display_name: Set(username.clone()),
+        username: Set(username.to_string()),
+        display_name: Set(username.to_string()),
         password_hash: Set(password_hash),
         ..Default::default()
     };
@@ -209,11 +209,14 @@ pub async fn sign_in(
     state: web::Data<AppState>,
     body: web::Json<Credentials>,
 ) -> HttpResponse {
-    let username = body.username.trim().to_lowercase();
+    let username = body.username.trim();
     let password = &body.password;
 
     let user = users::Entity::find()
-        .filter(users::Column::Username.eq(&username))
+        .filter(
+            Expr::expr(Func::lower(Expr::col(users::Column::Username)))
+                .eq(username.to_lowercase()),
+        )
         .one(&state.conn)
         .await;
 
@@ -235,7 +238,10 @@ pub async fn sign_in(
     };
 
     let valid = Argon2::default()
-        .verify_password(password.as_bytes(), &argon2::PasswordHash::new(&user.password_hash).unwrap())
+        .verify_password(
+            password.as_bytes(),
+            &argon2::PasswordHash::new(&user.password_hash).unwrap(),
+        )
         .is_ok();
 
     if !valid {
@@ -247,17 +253,25 @@ pub async fn sign_in(
 
     set_session_auth(&session, user.id);
 
-    HttpResponse::Ok().json(AuthResponse { ok: true, error: None })
+    HttpResponse::Ok().json(AuthResponse {
+        ok: true,
+        error: None,
+    })
 }
 
 #[post("/auth/sign-out")]
 pub async fn sign_out(session: Session) -> HttpResponse {
     session.purge();
-    HttpResponse::Ok().json(AuthResponse { ok: true, error: None })
+    HttpResponse::Ok().json(AuthResponse {
+        ok: true,
+        error: None,
+    })
 }
 
 fn argon2_to_hash(password: &str) -> Result<String, argon2::password_hash::Error> {
     use argon2::password_hash::rand_core::OsRng;
     let salt = argon2::password_hash::SaltString::generate(&mut OsRng);
-    Argon2::default().hash_password(password.as_bytes(), &salt).map(|h| h.to_string())
+    Argon2::default()
+        .hash_password(password.as_bytes(), &salt)
+        .map(|h| h.to_string())
 }

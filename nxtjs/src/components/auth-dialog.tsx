@@ -128,7 +128,7 @@ function AuthDialog({
                 <Input
                   id="si-username"
                   value={signInUsername}
-                  onChange={(e) => setSignInUsername(e.target.value.toLowerCase())}
+                  onChange={(e) => setSignInUsername(e.target.value)}
                   placeholder="username"
                   autoComplete="username"
                   required
@@ -162,7 +162,7 @@ function AuthDialog({
                 <Input
                   id="su-username"
                   value={signUpUsername}
-                  onChange={(e) => setSignUpUsername(e.target.value.toLowerCase())}
+                  onChange={(e) => setSignUpUsername(e.target.value)}
                   placeholder="username"
                   autoComplete="username"
                   required
