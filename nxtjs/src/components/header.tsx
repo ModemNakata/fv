@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { MagnifyingGlassIcon, List, Bell, UserCircle, ArrowLeft, Plus } from "@phosphor-icons/react"
+import { MagnifyingGlassIcon, List, Bell, ArrowLeft, Plus } from "@phosphor-icons/react"
 import { Button } from "@/components/ui/button"
 import { AuthDialog } from "@/components/auth-dialog"
+import { ProfileDropdown } from "@/components/profile-dropdown"
 
 function Header() {
   const [searchOpen, setSearchOpen] = useState(false)
@@ -91,9 +92,12 @@ function Header() {
           </Button>
         )}
         {authed ? (
-          <Button variant="ghost" size="icon-sm">
-            <UserCircle className="size-5" />
-          </Button>
+          <ProfileDropdown
+            onSignOut={() => {
+              fetch("/api/auth/sign-out", { method: "POST", credentials: "include" })
+                .then(checkAuth)
+            }}
+          />
         ) : (
           <Button
             variant="default"
