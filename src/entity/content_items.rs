@@ -18,8 +18,8 @@ pub struct Model {
     pub thumbnail_url: Option<String>,
     pub status: ContentStatus,
     pub visibility: ContentVisibility,
-    pub created_at: DateTimeWithTimeZone,
-    pub updated_at: DateTimeWithTimeZone,
+    pub created_at: DateTime,
+    pub updated_at: DateTime,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

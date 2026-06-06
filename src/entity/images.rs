@@ -11,7 +11,7 @@ pub struct Model {
     pub storage_path: String,
     pub sort_order: i32,
     pub alt_text: Option<String>,
-    pub created_at: DateTimeWithTimeZone,
+    pub created_at: DateTime,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

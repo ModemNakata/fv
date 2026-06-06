@@ -191,7 +191,7 @@ impl MigrationTrait for Migration {
                     .name("idx_content_main_feed")
                     .table("content_items")
                     .col("visibility")
-                    .col("status")
+                    // .col("status")
                     .col(("created_at", IndexOrder::Desc))
                     .to_owned(),
             )

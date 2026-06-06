@@ -15,7 +15,7 @@ pub struct Model {
     pub format: String,
     pub storage_path: String,
     pub file_size_bytes: Option<i64>,
-    pub created_at: DateTimeWithTimeZone,
+    pub created_at: DateTime,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

@@ -8,7 +8,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub content_id: Uuid,
     pub duration_seconds: Option<i32>,
-    pub view_count: Option<i64>,
+    pub view_count: i64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
