@@ -2,11 +2,6 @@ import { cn } from "@/lib/utils"
 import { Header } from "@/components/header"
 import { VideoCard, type Video } from "@/components/video-card"
 
-const categories = [
-  "All", "Rust", "Next.js", "UI Design", "Animations", "Backend",
-  "TypeScript", "Databases", "DevOps", "Tailwind CSS",
-]
-
 const videos: Video[] = [
   { id: "1", title: "Building a full-stack app with Actix and Next.js in 2026", channel: "FetishDev", channelInitials: "FD", views: "142K", timestamp: "2 days ago", duration: "24:15", gradient: "bg-gradient-to-br from-primary to-chart-3" },
   { id: "2", title: "Rust borrow checker explained with real examples", channel: "RustMafia", channelInitials: "RM", views: "89K", timestamp: "5 days ago", duration: "18:42", gradient: "bg-gradient-to-br from-chart-5 via-chart-2 to-chart-1" },
@@ -31,23 +26,6 @@ export default function Home() {
     <div className="flex min-h-full flex-col">
       <Header />
       <main className="flex-1">
-        <div className="border-b border-border bg-background px-4 py-2.5 sm:px-6">
-          <div className="flex gap-2 overflow-x-auto scrollbar-none">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                className={cn(
-                  "shrink-0 rounded-full px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors",
-                  cat === "All"
-                    ? "bg-foreground text-background"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-                )}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        </div>
         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-x-4 gap-y-6 px-4 py-6 sm:px-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {videos.map((video) => (
             <VideoCard key={video.id} video={video} />

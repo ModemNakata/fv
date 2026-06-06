@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { MagnifyingGlassIcon, List, Bell, UserCircle, ArrowLeft } from "@phosphor-icons/react"
+import { MagnifyingGlassIcon, List, Bell, UserCircle, ArrowLeft, Plus } from "@phosphor-icons/react"
 import { Button } from "@/components/ui/button"
 
 function Header() {
@@ -64,6 +64,13 @@ function Header() {
         <Button variant="ghost" size="icon-sm" className="sm:hidden" onClick={() => setSearchOpen(true)}>
           <MagnifyingGlassIcon className="size-5" />
         </Button>
+        <Link
+          href="/upload"
+          className="inline-flex items-center gap-1.5 rounded-2xl border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+        >
+          <Plus className="size-4" />
+          Upload
+        </Link>
         <Button variant="ghost" size="icon-sm">
           <Bell className="size-5" />
         </Button>
