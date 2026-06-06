@@ -2,7 +2,10 @@ use actix_session::Session;
 use actix_web::{HttpResponse, get, post, web};
 use argon2::{Argon2, PasswordHasher, PasswordVerifier};
 use chrono::{NaiveDateTime, Utc};
-use sea_orm::{EntityTrait, QueryFilter, Set, sea_query::{Expr, Func}};
+use sea_orm::{
+    EntityTrait, QueryFilter, Set,
+    sea_query::{Expr, Func},
+};
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
@@ -145,8 +148,7 @@ pub async fn sign_up(
 
     let existing = users::Entity::find()
         .filter(
-            Expr::expr(Func::lower(Expr::col(users::Column::Username)))
-                .eq(username.to_lowercase()),
+            Expr::expr(Func::lower(Expr::col(users::Column::Username))).eq(username.to_lowercase()),
         )
         .one(&state.conn)
         .await;
@@ -155,7 +157,7 @@ pub async fn sign_up(
         Ok(Some(_)) => {
             return HttpResponse::Conflict().json(AuthResponse {
                 ok: false,
-                error: Some("username_taken".to_string()),
+                error: Some("Username is already taken".to_string()),
             });
         }
         Err(e) => {
@@ -218,8 +220,7 @@ pub async fn sign_in(
 
     let user = users::Entity::find()
         .filter(
-            Expr::expr(Func::lower(Expr::col(users::Column::Username)))
-                .eq(username.to_lowercase()),
+            Expr::expr(Func::lower(Expr::col(users::Column::Username))).eq(username.to_lowercase()),
         )
         .one(&state.conn)
         .await;
