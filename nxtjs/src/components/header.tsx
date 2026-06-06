@@ -1,12 +1,20 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { MagnifyingGlassIcon, List, Bell, UserCircle, ArrowLeft, Plus } from "@phosphor-icons/react"
 import { Button } from "@/components/ui/button"
 
 function Header() {
   const [searchOpen, setSearchOpen] = useState(false)
+  const [authed, setAuthed] = useState(false)
+
+  useEffect(() => {
+    fetch("/api/auth/check")
+      .then((res) => res.json())
+      .then((data) => setAuthed(data.authed))
+      .catch(() => setAuthed(false))
+  }, [])
 
   return (
     <header className="relative flex h-14 items-center justify-between border-b border-border bg-background px-4 sm:px-6">
@@ -64,19 +72,32 @@ function Header() {
         <Button variant="ghost" size="icon-sm" className="sm:hidden" onClick={() => setSearchOpen(true)}>
           <MagnifyingGlassIcon className="size-5" />
         </Button>
-        <Link
-          href="/upload"
-          className="inline-flex items-center gap-1.5 rounded-2xl border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-        >
-          <Plus className="size-4" />
-          Upload
-        </Link>
-        <Button variant="ghost" size="icon-sm">
-          <Bell className="size-5" />
-        </Button>
-        <Button variant="ghost" size="icon-sm">
-          <UserCircle className="size-5" />
-        </Button>
+        {authed && (
+          <Link
+            href="/upload"
+            className="inline-flex items-center gap-1.5 rounded-2xl border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          >
+            <Plus className="size-4" />
+            Upload
+          </Link>
+        )}
+        {authed && (
+          <Button variant="ghost" size="icon-sm">
+            <Bell className="size-5" />
+          </Button>
+        )}
+        {authed ? (
+          <Button variant="ghost" size="icon-sm">
+            <UserCircle className="size-5" />
+          </Button>
+        ) : (
+          <Link
+            href="/login"
+            className="inline-flex items-center justify-center rounded-2xl bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
+          >
+            Sign in
+          </Link>
+        )}
       </div>
     </header>
   )

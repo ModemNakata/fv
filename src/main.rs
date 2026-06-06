@@ -1,8 +1,8 @@
-use actix_web::{App, HttpResponse, HttpServer, get, middleware, web};
-use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, Statement};
-use serde::Serialize;
+use actix_web::{App, HttpServer, middleware, web};
+use sea_orm::{Database, DatabaseConnection};
 use std::env;
-use std::time::Instant;
+
+mod auth;
 
 #[derive(Debug, Clone)]
 struct AppState {
@@ -25,6 +25,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(state.clone()))
+            .service(auth::auth_check)
             .wrap(middleware::Logger::default())
     })
     .bind(("0.0.0.0", 9291))?
