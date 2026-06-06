@@ -1,4 +1,7 @@
-use sea_orm_migration::prelude::{extension::postgres::Type, *};
+use sea_orm_migration::{
+    prelude::{extension::postgres::Type, *},
+    schema::*,
+};
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -9,8 +12,8 @@ impl MigrationTrait for Migration {
         manager
             .create_type(
                 Type::create()
-                    .as_enum(Alias::new("content_type"))
-                    .values(vec![Alias::new("video"), Alias::new("image_set")])
+                    .as_enum("content_type")
+                    .values(["video", "image_set"])
                     .to_owned(),
             )
             .await?;
@@ -18,92 +21,55 @@ impl MigrationTrait for Migration {
         manager
             .create_type(
                 Type::create()
-                    .as_enum(Alias::new("content_status"))
-                    .values(vec![
-                        Alias::new("uploading"),
-                        Alias::new("processing"),
-                        Alias::new("ready"),
-                        Alias::new("failed"),
-                    ])
+                    .as_enum("content_visibility")
+                    .values(["public", "private"]) // "unlisted",
                     .to_owned(),
             )
             .await?;
 
-        manager
-            .create_type(
-                Type::create()
-                    .as_enum(Alias::new("content_visibility"))
-                    .values(vec![
-                        Alias::new("public"),
-                        Alias::new("unlisted"),
-                        Alias::new("private"),
-                    ])
-                    .to_owned(),
-            )
-            .await?;
+        // manager
+        //     .create_type(
+        //         Type::create()
+        //             .as_enum("content_status")
+        //             .values(["uploading", "processing", "ready", "failed"])
+        //             .to_owned(),
+        //     )
+        //     .await?;
 
         manager
             .create_table(
                 Table::create()
-                    .table(Alias::new("content_items"))
+                    .table("content_items")
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(Alias::new("id"))
-                            .uuid()
-                            .not_null()
+                        uuid("id")
                             .default(Expr::cust("gen_random_uuid()"))
                             .primary_key(),
                     )
+                    .col(uuid("uploader_id"))
+                    .col(ColumnDef::new("type").custom("content_type").not_null())
+                    .col(string_len("title", 255))
+                    .col(text_null("description"))
+                    .col(string_len_null("thumbnail_url", 1024))
+                    // .col(
+                    //     ColumnDef::new("status")
+                    //         .custom("content_status")
+                    //         .not_null()
+                    //         .default("uploading"),
+                    // )
                     .col(
-                        ColumnDef::new(Alias::new("uploader_id"))
-                            .uuid()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("type"))
-                            .custom(Alias::new("content_type"))
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("title"))
-                            .string_len(255)
-                            .not_null(),
-                    )
-                    .col(ColumnDef::new(Alias::new("description")).text().null())
-                    .col(
-                        ColumnDef::new(Alias::new("thumbnail_url"))
-                            .string_len(1024)
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("status"))
-                            .custom(Alias::new("content_status"))
-                            .not_null()
-                            .default("uploading"),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("visibility"))
-                            .custom(Alias::new("content_visibility"))
+                        ColumnDef::new("visibility")
+                            .custom("content_visibility")
                             .not_null()
                             .default("private"),
                     )
-                    .col(
-                        ColumnDef::new(Alias::new("created_at"))
-                            .timestamp_with_time_zone()
-                            .not_null()
-                            .default(Expr::current_timestamp()),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("updated_at"))
-                            .timestamp_with_time_zone()
-                            .not_null()
-                            .default(Expr::current_timestamp()),
-                    )
+                    .col(timestamp("created_at").default(Expr::current_timestamp()))
+                    .col(timestamp("updated_at").default(Expr::current_timestamp()))
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_content_uploader")
-                            .from(Alias::new("content_items"), Alias::new("uploader_id"))
-                            .to(Alias::new("users"), Alias::new("id"))
+                            .from("content_items", "uploader_id")
+                            .to("users", "id")
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
@@ -113,29 +79,16 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(Alias::new("videos"))
+                    .table("videos")
                     .if_not_exists()
-                    .col(
-                        ColumnDef::new(Alias::new("content_id"))
-                            .uuid()
-                            .not_null()
-                            .primary_key(),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("duration_seconds"))
-                            .integer()
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("view_count"))
-                            .big_integer()
-                            .default(0),
-                    )
+                    .col(uuid("content_id").primary_key())
+                    .col(integer_null("duration_seconds"))
+                    .col(big_integer("view_count").default(0))
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_video_content")
-                            .from(Alias::new("videos"), Alias::new("content_id"))
-                            .to(Alias::new("content_items"), Alias::new("id"))
+                            .from("videos", "content_id")
+                            .to("content_items", "id")
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
@@ -145,60 +98,33 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(Alias::new("video_formats"))
+                    .table("video_formats")
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(Alias::new("id"))
-                            .uuid()
-                            .not_null()
+                        uuid("id")
                             .default(Expr::cust("gen_random_uuid()"))
                             .primary_key(),
                     )
-                    .col(
-                        ColumnDef::new(Alias::new("video_id"))
-                            .uuid()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("resolution"))
-                            .string_len(50)
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("format"))
-                            .string_len(50)
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("storage_path"))
-                            .string_len(1024)
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("file_size_bytes"))
-                            .big_integer()
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("created_at"))
-                            .timestamp_with_time_zone()
-                            .not_null()
-                            .default(Expr::current_timestamp()),
-                    )
+                    .col(uuid("video_id"))
+                    .col(string_len("resolution", 50))
+                    .col(string_len("format", 50))
+                    .col(string_len("storage_path", 1024))
+                    .col(big_integer_null("file_size_bytes"))
+                    .col(timestamp("created_at").default(Expr::current_timestamp()))
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_video_format_video")
-                            .from(Alias::new("video_formats"), Alias::new("video_id"))
-                            .to(Alias::new("videos"), Alias::new("content_id"))
+                            .from("video_formats", "video_id")
+                            .to("videos", "content_id")
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .index(
                         Index::create()
                             .unique()
                             .name("uq_video_formats")
-                            .col(Alias::new("video_id"))
-                            .col(Alias::new("resolution"))
-                            .col(Alias::new("format")),
+                            .col("video_id")
+                            .col("resolution")
+                            .col("format"),
                     )
                     .to_owned(),
             )
@@ -207,24 +133,15 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(Alias::new("image_sets"))
+                    .table("image_sets")
                     .if_not_exists()
-                    .col(
-                        ColumnDef::new(Alias::new("content_id"))
-                            .uuid()
-                            .not_null()
-                            .primary_key(),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("layout_preference"))
-                            .string_len(50)
-                            .default("gallery"),
-                    )
+                    .col(uuid("content_id").primary_key())
+                    // .col(string_len_null("layout_preference", 50).default("gallery"))
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_image_set_content")
-                            .from(Alias::new("image_sets"), Alias::new("content_id"))
-                            .to(Alias::new("content_items"), Alias::new("id"))
+                            .from("image_sets", "content_id")
+                            .to("content_items", "id")
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
@@ -234,47 +151,23 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(Alias::new("images"))
+                    .table("images")
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(Alias::new("id"))
-                            .uuid()
-                            .not_null()
+                        uuid("id")
                             .default(Expr::cust("gen_random_uuid()"))
                             .primary_key(),
                     )
-                    .col(
-                        ColumnDef::new(Alias::new("image_set_id"))
-                            .uuid()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("storage_path"))
-                            .string_len(1024)
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("sort_order"))
-                            .integer()
-                            .not_null()
-                            .default(0),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("alt_text"))
-                            .string_len(255)
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("created_at"))
-                            .timestamp_with_time_zone()
-                            .not_null()
-                            .default(Expr::current_timestamp()),
-                    )
+                    .col(uuid("image_set_id"))
+                    .col(string_len("storage_path", 1024))
+                    .col(integer("sort_order").default(0))
+                    .col(string_len_null("alt_text", 255))
+                    .col(timestamp("created_at").default(Expr::current_timestamp()))
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_image_set")
-                            .from(Alias::new("images"), Alias::new("image_set_id"))
-                            .to(Alias::new("image_sets"), Alias::new("content_id"))
+                            .from("images", "image_set_id")
+                            .to("image_sets", "content_id")
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
@@ -285,9 +178,9 @@ impl MigrationTrait for Migration {
             .create_index(
                 Index::create()
                     .name("idx_content_uploader")
-                    .table(Alias::new("content_items"))
-                    .col(Alias::new("uploader_id"))
-                    .col((Alias::new("created_at"), IndexOrder::Desc))
+                    .table("content_items")
+                    .col("uploader_id")
+                    .col(("created_at", IndexOrder::Desc))
                     .to_owned(),
             )
             .await?;
@@ -296,10 +189,10 @@ impl MigrationTrait for Migration {
             .create_index(
                 Index::create()
                     .name("idx_content_main_feed")
-                    .table(Alias::new("content_items"))
-                    .col(Alias::new("visibility"))
-                    .col(Alias::new("status"))
-                    .col((Alias::new("created_at"), IndexOrder::Desc))
+                    .table("content_items")
+                    .col("visibility")
+                    .col("status")
+                    .col(("created_at", IndexOrder::Desc))
                     .to_owned(),
             )
             .await?;
@@ -308,9 +201,9 @@ impl MigrationTrait for Migration {
             .create_index(
                 Index::create()
                     .name("idx_images_ordered")
-                    .table(Alias::new("images"))
-                    .col(Alias::new("image_set_id"))
-                    .col(Alias::new("sort_order"))
+                    .table("images")
+                    .col("image_set_id")
+                    .col("sort_order")
                     .to_owned(),
             )
             .await?;
@@ -320,29 +213,31 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(Alias::new("images")).to_owned())
+            .drop_table(Table::drop().table("images").to_owned())
             .await?;
         manager
-            .drop_table(Table::drop().table(Alias::new("image_sets")).to_owned())
+            .drop_table(Table::drop().table("image_sets").to_owned())
             .await?;
         manager
-            .drop_table(Table::drop().table(Alias::new("video_formats")).to_owned())
+            .drop_table(Table::drop().table("video_formats").to_owned())
             .await?;
         manager
-            .drop_table(Table::drop().table(Alias::new("videos")).to_owned())
+            .drop_table(Table::drop().table("videos").to_owned())
             .await?;
         manager
-            .drop_table(Table::drop().table(Alias::new("content_items")).to_owned())
+            .drop_table(Table::drop().table("content_items").to_owned())
             .await?;
+
         manager
-            .drop_type(Type::drop().name(Alias::new("content_visibility")).to_owned())
+            .drop_type(Type::drop().name("content_visibility").to_owned())
             .await?;
+        // manager
+        //     .drop_type(Type::drop().name("content_status").to_owned())
+        //     .await?;
         manager
-            .drop_type(Type::drop().name(Alias::new("content_status")).to_owned())
+            .drop_type(Type::drop().name("content_type").to_owned())
             .await?;
-        manager
-            .drop_type(Type::drop().name(Alias::new("content_type")).to_owned())
-            .await?;
+
         Ok(())
     }
 }

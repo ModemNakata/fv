@@ -1,4 +1,4 @@
-use sea_orm_migration::prelude::{extension::postgres::Type, *};
+use sea_orm_migration::{prelude::*, schema::*};
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -7,81 +7,20 @@ pub struct Migration;
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .create_type(
-                Type::create()
-                    .as_enum(Alias::new("user_role"))
-                    .values(vec![
-                        Alias::new("user"),
-                        Alias::new("creator"),
-                        Alias::new("admin"),
-                    ])
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
             .create_table(
                 Table::create()
-                    .table(Alias::new("users"))
+                    .table("users")
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(Alias::new("id"))
-                            .uuid()
-                            .not_null()
-                            .default(Expr::cust("gen_random_uuid()"))
-                            .primary_key(),
+                        uuid("id")
+                            .primary_key()
+                            .default(Expr::cust("gen_random_uuid()")),
                     )
-                    .col(
-                        ColumnDef::new(Alias::new("username"))
-                            .string_len(50)
-                            .unique_key()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("password_hash"))
-                            .string_len(255)
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("role"))
-                            .custom(Alias::new("user_role"))
-                            .not_null()
-                            .default("user"),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("is_active"))
-                            .boolean()
-                            .not_null()
-                            .default(true),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("totp_secret"))
-                            .string_len(128)
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("totp_enabled"))
-                            .boolean()
-                            .not_null()
-                            .default(false),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("totp_backup_codes"))
-                            .array(ColumnType::Text)
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("created_at"))
-                            .timestamp_with_time_zone()
-                            .not_null()
-                            .default(Expr::current_timestamp()),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("updated_at"))
-                            .timestamp_with_time_zone()
-                            .not_null()
-                            .default(Expr::current_timestamp()),
-                    )
+                    .col(string_len("username", 50).unique_key())
+                    .col(string_len("display_name", 50).unique_key())
+                    .col(string_len("password_hash", 255))
+                    .col(timestamp("created_at").default(Expr::current_timestamp()))
+                    .col(timestamp("updated_at").default(Expr::current_timestamp()))
                     .to_owned(),
             )
             .await?;
@@ -90,8 +29,8 @@ impl MigrationTrait for Migration {
             .create_index(
                 Index::create()
                     .name("idx_users_username")
-                    .table(Alias::new("users"))
-                    .col(Alias::new("username"))
+                    .table("users")
+                    .col("username")
                     .to_owned(),
             )
             .await?;
@@ -101,11 +40,9 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(Alias::new("users")).to_owned())
+            .drop_table(Table::drop().table("users").to_owned())
             .await?;
-        manager
-            .drop_type(Type::drop().name(Alias::new("user_role")).to_owned())
-            .await?;
+
         Ok(())
     }
 }
