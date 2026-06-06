@@ -1,6 +1,7 @@
 use actix_session::Session;
 use actix_web::{HttpResponse, get, post, web};
 use argon2::{Argon2, PasswordHasher, PasswordVerifier};
+use chrono::{NaiveDateTime, Utc};
 use sea_orm::{EntityTrait, QueryFilter, Set, sea_query::{Expr, Func}};
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -62,54 +63,54 @@ fn validate_username(username: &str) -> Result<(), &'static str> {
     Ok(())
 }
 
-fn session_expired(session: &Session) -> bool {
-    if let Ok(Some(logged_in_at)) = session.get::<u64>("logged_in_at") {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs();
-        let max_age = Duration::from_secs(SESSION_MAX_AGE_DAYS * 86400);
-        Duration::from_secs(now.checked_sub(logged_in_at).unwrap_or(0)) > max_age
-    } else {
-        true
-    }
-}
-
-fn set_session_auth(session: &Session, user_id: Uuid) {
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
+fn set_session_auth(session: &Session, user_id: Uuid, pw_changed_at: NaiveDateTime) {
+    let ts = pw_changed_at.and_utc().timestamp() as u64;
     if let Err(e) = session.insert("user_id", user_id) {
         log::error!("Session insert error: {e}");
     }
-    if let Err(e) = session.insert("logged_in_at", now) {
+    if let Err(e) = session.insert("password_changed_at", ts) {
         log::error!("Session insert error: {e}");
     }
 }
 
 #[get("/auth/check")]
 pub async fn auth_check(session: Session, state: web::Data<AppState>) -> HttpResponse {
-    if session_expired(&session) {
-        session.purge();
-        return HttpResponse::Ok().json(AuthCheckResponse {
-            authed: false,
-            username: None,
-        });
-    }
+    let session_pw_ts = session.get::<u64>("password_changed_at").ok().flatten();
 
-    if let Ok(Some(user_id)) = session.get::<Uuid>("user_id") {
-        let user = users::Entity::find_by_id(user_id)
-            .one(&state.conn)
-            .await
-            .ok()
-            .flatten();
-
-        if let Some(u) = user {
+    if let Some(session_pw_ts) = session_pw_ts {
+        // max-age check
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        let max_age = Duration::from_secs(SESSION_MAX_AGE_DAYS * 86400);
+        if Duration::from_secs(now.checked_sub(session_pw_ts).unwrap_or(0)) > max_age {
+            session.purge();
             return HttpResponse::Ok().json(AuthCheckResponse {
-                authed: true,
-                username: Some(u.username),
+                authed: false,
+                username: None,
             });
+        }
+
+        if let Ok(Some(user_id)) = session.get::<Uuid>("user_id") {
+            let user = users::Entity::find_by_id(user_id)
+                .one(&state.conn)
+                .await
+                .ok()
+                .flatten();
+
+            if let Some(u) = user {
+                let db_pw_ts = u.password_changed_at.and_utc().timestamp() as u64;
+                // snapshot mismatch → password was changed since this session was created
+                if db_pw_ts != session_pw_ts {
+                    session.purge();
+                } else {
+                    return HttpResponse::Ok().json(AuthCheckResponse {
+                        authed: true,
+                        username: Some(u.username),
+                    });
+                }
+            }
         }
     }
 
@@ -179,11 +180,14 @@ pub async fn sign_up(
 
     let user_id = Uuid::new_v4();
 
+    let now = Utc::now().naive_utc();
+
     let insert = users::ActiveModel {
         id: Set(user_id),
         username: Set(username.to_string()),
         display_name: Set(username.to_string()),
         password_hash: Set(password_hash),
+        password_changed_at: Set(now),
         ..Default::default()
     };
 
@@ -195,7 +199,7 @@ pub async fn sign_up(
         });
     }
 
-    set_session_auth(&session, user_id);
+    set_session_auth(&session, user_id, now);
 
     HttpResponse::Created().json(AuthResponse {
         ok: true,
@@ -251,7 +255,7 @@ pub async fn sign_in(
         });
     }
 
-    set_session_auth(&session, user.id);
+    set_session_auth(&session, user.id, user.password_changed_at);
 
     HttpResponse::Ok().json(AuthResponse {
         ok: true,

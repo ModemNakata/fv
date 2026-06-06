@@ -23,6 +23,7 @@ impl MigrationTrait for Migration {
                     // ... Symbols like !, @, #, $, %, or periods (.)
                     .col(string_len("display_name", 32)) // 50
                     .col(string_len("password_hash", 255))
+                    .col(timestamp("password_changed_at").default(Expr::current_timestamp()))
                     .col(timestamp("created_at").default(Expr::current_timestamp()))
                     .col(timestamp("updated_at").default(Expr::current_timestamp()))
                     .to_owned(),
