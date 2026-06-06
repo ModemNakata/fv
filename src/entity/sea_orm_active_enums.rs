@@ -3,18 +3,6 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
-#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "content_status")]
-pub enum ContentStatus {
-    #[sea_orm(string_value = "uploading")]
-    Uploading,
-    #[sea_orm(string_value = "processing")]
-    Processing,
-    #[sea_orm(string_value = "ready")]
-    Ready,
-    #[sea_orm(string_value = "failed")]
-    Failed,
-}
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "content_type")]
 pub enum ContentType {
     #[sea_orm(string_value = "video")]
@@ -27,18 +15,6 @@ pub enum ContentType {
 pub enum ContentVisibility {
     #[sea_orm(string_value = "public")]
     Public,
-    #[sea_orm(string_value = "unlisted")]
-    Unlisted,
     #[sea_orm(string_value = "private")]
     Private,
-}
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
-#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "user_role")]
-pub enum UserRole {
-    #[sea_orm(string_value = "user")]
-    User,
-    #[sea_orm(string_value = "creator")]
-    Creator,
-    #[sea_orm(string_value = "admin")]
-    Admin,
 }
