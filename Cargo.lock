@@ -970,6 +970,7 @@ dependencies = [
  "argon2",
  "dotenvy",
  "env_logger",
+ "hex",
  "log",
  "sea-orm",
  "serde",

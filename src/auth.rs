@@ -3,10 +3,13 @@ use actix_web::{HttpResponse, get, post, web};
 use argon2::{Argon2, PasswordHasher, PasswordVerifier};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 use crate::entity::users;
 use crate::AppState;
+
+const SESSION_MAX_AGE_DAYS: u64 = 30;
 
 #[derive(Serialize)]
 pub struct AuthCheckResponse {
@@ -27,26 +30,62 @@ pub struct AuthResponse {
 }
 
 fn validate_username(username: &str) -> Result<(), &'static str> {
-    if username.len() < 2 {
-        return Err("Username must be at least 2 characters");
+    if username.len() < 3 {
+        return Err("Username must be at least 3 characters");
     }
-    if username.len() > 63 {
-        return Err("Username must be 63 characters or fewer");
+    if username.len() > 16 {
+        return Err("Username must be 16 characters or fewer");
     }
 
     let bytes = username.as_bytes();
-    if !bytes[0].is_ascii_lowercase() {
-        return Err("Username must start with a lowercase letter");
+
+    // must start with a letter or digit
+    if !bytes[0].is_ascii_alphanumeric() {
+        return Err("Username must start with a letter or digit");
     }
+    // must end with a letter or digit
     if !bytes[bytes.len() - 1].is_ascii_alphanumeric() {
         return Err("Username must end with a letter or digit");
     }
+    // no leading hyphen (covered above by alphanumeric check, but explicit for clarity)
+    // no trailing hyphen (covered above)
+    // only lowercase letters, digits, and hyphens
     for &b in bytes {
         if !b.is_ascii_lowercase() && !b.is_ascii_digit() && b != b'-' {
             return Err("Username can only contain lowercase letters, digits, and hyphens");
         }
     }
+    // no consecutive hyphens (just a good practice)
+    if bytes.windows(2).any(|w| w == b"--") {
+        return Err("Username must not contain consecutive hyphens");
+    }
     Ok(())
+}
+
+fn session_expired(session: &Session) -> bool {
+    if let Ok(Some(logged_in_at)) = session.get::<u64>("logged_in_at") {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        let max_age = Duration::from_secs(SESSION_MAX_AGE_DAYS * 86400);
+        Duration::from_secs(now.checked_sub(logged_in_at).unwrap_or(0)) > max_age
+    } else {
+        true
+    }
+}
+
+fn set_session_auth(session: &Session, user_id: Uuid) {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    if let Err(e) = session.insert("user_id", user_id) {
+        log::error!("Session insert error: {e}");
+    }
+    if let Err(e) = session.insert("logged_in_at", now) {
+        log::error!("Session insert error: {e}");
+    }
 }
 
 #[get("/auth/check")]
@@ -54,6 +93,14 @@ pub async fn auth_check(
     session: Session,
     state: web::Data<AppState>,
 ) -> HttpResponse {
+    if session_expired(&session) {
+        session.purge();
+        return HttpResponse::Ok().json(AuthCheckResponse {
+            authed: false,
+            username: None,
+        });
+    }
+
     if let Ok(Some(user_id)) = session.get::<Uuid>("user_id") {
         let user = users::Entity::find_by_id(user_id)
             .one(&state.conn)
@@ -148,9 +195,7 @@ pub async fn sign_up(
         });
     }
 
-    if let Err(e) = session.insert("user_id", user_id) {
-        log::error!("Session insert error: {e}");
-    }
+    set_session_auth(&session, user_id);
 
     HttpResponse::Created().json(AuthResponse {
         ok: true,
@@ -200,10 +245,14 @@ pub async fn sign_in(
         });
     }
 
-    if let Err(e) = session.insert("user_id", user.id) {
-        log::error!("Session insert error: {e}");
-    }
+    set_session_auth(&session, user.id);
 
+    HttpResponse::Ok().json(AuthResponse { ok: true, error: None })
+}
+
+#[post("/auth/sign-out")]
+pub async fn sign_out(session: Session) -> HttpResponse {
+    session.purge();
     HttpResponse::Ok().json(AuthResponse { ok: true, error: None })
 }
 

@@ -13,21 +13,6 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 
-const USERNAME_REGEX = /^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$/
-
-function isValidUsername(value: string): string | null {
-  if (value.length < 2) return "Must be at least 2 characters"
-  if (value.length > 63) return "Must be 63 characters or fewer"
-  if (!USERNAME_REGEX.test(value))
-    return "Letters, digits, and hyphens only; must start with a letter and end with a letter or digit"
-  return null
-}
-
-function isValidPassword(value: string): string | null {
-  if (value.length < 8) return "Must be at least 8 characters"
-  return null
-}
-
 function AuthDialog({
   open,
   onOpenChange,
@@ -67,13 +52,6 @@ function AuthDialog({
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault()
     setSignInError("")
-
-    const usernameErr = isValidUsername(signInUsername)
-    if (usernameErr) { setSignInError(usernameErr); return }
-
-    const passwordErr = isValidPassword(signInPassword)
-    if (passwordErr) { setSignInError(passwordErr); return }
-
     setSignInSubmitting(true)
     try {
       const res = await fetch("/api/auth/sign-in", {
@@ -100,12 +78,6 @@ function AuthDialog({
     e.preventDefault()
     const errors: Record<string, string> = {}
 
-    const usernameErr = isValidUsername(signUpUsername)
-    if (usernameErr) errors.username = usernameErr
-
-    const passwordErr = isValidPassword(signUpPassword)
-    if (passwordErr) errors.password = passwordErr
-
     if (signUpPassword !== signUpConfirm) errors.confirm = "Passwords do not match"
 
     setSignUpErrors(errors)
@@ -121,11 +93,7 @@ function AuthDialog({
       })
       if (!res.ok) {
         const data = await res.json()
-        if (data.error === "username_taken") {
-          setSignUpErrors({ username: "Username is already taken" })
-        } else {
-          setSignUpErrors({ form: data.error || "Something went wrong" })
-        }
+        setSignUpErrors({ form: data.error || "Something went wrong" })
         return
       }
       onAuthSuccess()

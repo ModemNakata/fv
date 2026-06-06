@@ -22,6 +22,18 @@ async fn main() -> std::io::Result<()> {
 
     let state = AppState { conn };
 
+    let session_key = match env::var("SESSION_SECRET") {
+        Ok(hex_key) => {
+            let bytes = hex::decode(hex_key.trim())
+                .expect("SESSION_SECRET must be a valid hex string");
+            Key::from(&bytes)
+        }
+        Err(_) => {
+            log::warn!("SESSION_SECRET not set, using ephemeral key (sessions will invalidate on restart)");
+            Key::generate()
+        }
+    };
+
     log::info!("starting HTTP server");
 
     HttpServer::new(move || {
@@ -30,9 +42,10 @@ async fn main() -> std::io::Result<()> {
             .service(auth::auth_check)
             .service(auth::sign_up)
             .service(auth::sign_in)
+            .service(auth::sign_out)
             .wrap(SessionMiddleware::new(
                 CookieSessionStore::default(),
-                Key::generate(),
+                session_key.clone(),
             ))
             .wrap(middleware::Logger::default())
     })
