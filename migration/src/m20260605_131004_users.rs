@@ -17,7 +17,7 @@ impl MigrationTrait for Migration {
                             .default(Expr::cust("gen_random_uuid()")),
                     )
                     .col(string_len("username", 50).unique_key())
-                    .col(string_len("display_name", 50).unique_key())
+                    .col(string_len("display_name", 50))
                     .col(string_len("password_hash", 255))
                     .col(timestamp("created_at").default(Expr::current_timestamp()))
                     .col(timestamp("updated_at").default(Expr::current_timestamp()))

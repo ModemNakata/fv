@@ -9,7 +9,6 @@ pub struct Model {
     pub id: Uuid,
     #[sea_orm(unique)]
     pub username: String,
-    #[sea_orm(unique)]
     pub display_name: String,
     pub password_hash: String,
     pub created_at: DateTime,

@@ -4,17 +4,21 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { MagnifyingGlassIcon, List, Bell, UserCircle, ArrowLeft, Plus } from "@phosphor-icons/react"
 import { Button } from "@/components/ui/button"
+import { AuthDialog } from "@/components/auth-dialog"
 
 function Header() {
   const [searchOpen, setSearchOpen] = useState(false)
+  const [authOpen, setAuthOpen] = useState(false)
   const [authed, setAuthed] = useState(false)
 
-  useEffect(() => {
+  function checkAuth() {
     fetch("/api/auth/check")
       .then((res) => res.json())
       .then((data) => setAuthed(data.authed))
       .catch(() => setAuthed(false))
-  }, [])
+  }
+
+  useEffect(checkAuth, [])
 
   return (
     <header className="relative flex h-14 items-center justify-between border-b border-border bg-background px-4 sm:px-6">
@@ -91,13 +95,19 @@ function Header() {
             <UserCircle className="size-5" />
           </Button>
         ) : (
-          <Link
-            href="/login"
-            className="inline-flex items-center justify-center rounded-2xl bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => setAuthOpen(true)}
           >
             Sign in
-          </Link>
+          </Button>
         )}
+        <AuthDialog
+          open={authOpen}
+          onOpenChange={setAuthOpen}
+          onAuthSuccess={checkAuth}
+        />
       </div>
     </header>
   )
