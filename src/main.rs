@@ -9,31 +9,6 @@ struct AppState {
     conn: DatabaseConnection,
 }
 
-#[derive(Serialize)]
-struct HealthResponse {
-    db_connected: bool,
-    latency_microseconds: u64,
-}
-
-#[get("/health")]
-async fn health(state: web::Data<AppState>) -> HttpResponse {
-    let start = Instant::now();
-    let ok = state
-        .conn
-        .execute(Statement::from_string(
-            DbBackend::Postgres,
-            "SELECT 1".to_owned(),
-        ))
-        .await
-        .is_ok();
-    let latency_microseconds = start.elapsed().as_micros() as u64;
-
-    HttpResponse::Ok().json(HealthResponse {
-        db_connected: ok,
-        latency_microseconds,
-    })
-}
-
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
@@ -50,7 +25,6 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(state.clone()))
-            .service(health)
             .wrap(middleware::Logger::default())
     })
     .bind(("0.0.0.0", 9291))?
