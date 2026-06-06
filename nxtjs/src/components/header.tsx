@@ -10,7 +10,7 @@ import { ProfileDropdown } from "@/components/profile-dropdown"
 function Header() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
-  const [authed, setAuthed] = useState(false)
+  const [authed, setAuthed] = useState<boolean | null>(null)
 
   function checkAuth() {
     fetch("/api/auth/check", { credentials: "include" })
@@ -77,35 +77,39 @@ function Header() {
         <Button variant="ghost" size="icon-sm" className="sm:hidden" onClick={() => setSearchOpen(true)}>
           <MagnifyingGlassIcon className="size-5" />
         </Button>
-        {authed && (
-          <Link
-            href="/upload"
-            className="inline-flex items-center gap-1.5 rounded-2xl border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-          >
-            <Plus className="size-4" />
-            Upload
-          </Link>
-        )}
-        {authed && (
-          <Button variant="ghost" size="icon-sm">
-            <Bell className="size-5" />
-          </Button>
-        )}
-        {authed ? (
-          <ProfileDropdown
-            onSignOut={() => {
-              fetch("/api/auth/sign-out", { method: "POST", credentials: "include" })
-                .then(checkAuth)
-            }}
-          />
-        ) : (
-          <Button
-            variant="default"
-            size="sm"
-            onClick={() => setAuthOpen(true)}
-          >
-            Sign in
-          </Button>
+        {authed !== null && (
+          <>
+            {authed && (
+              <Link
+                href="/upload"
+                className="inline-flex items-center gap-1.5 rounded-2xl border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                <Plus className="size-4" />
+                Upload
+              </Link>
+            )}
+            {authed && (
+              <Button variant="ghost" size="icon-sm">
+                <Bell className="size-5" />
+              </Button>
+            )}
+            {authed ? (
+              <ProfileDropdown
+                onSignOut={() => {
+                  fetch("/api/auth/sign-out", { method: "POST", credentials: "include" })
+                    .then(checkAuth)
+                }}
+              />
+            ) : (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setAuthOpen(true)}
+              >
+                Sign in
+              </Button>
+            )}
+          </>
         )}
         <AuthDialog
           open={authOpen}
