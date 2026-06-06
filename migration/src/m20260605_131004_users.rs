@@ -16,7 +16,9 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .default(Expr::cust("gen_random_uuid()")),
                     )
+                    // RFC 1035 | is checked on uniqueness by lower-case
                     .col(string_len("username", 50).unique_key())
+                    // allow underscores and spaces
                     .col(string_len("display_name", 50))
                     .col(string_len("password_hash", 255))
                     .col(timestamp("created_at").default(Expr::current_timestamp()))

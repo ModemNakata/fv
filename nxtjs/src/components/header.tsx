@@ -12,7 +12,7 @@ function Header() {
   const [authed, setAuthed] = useState(false)
 
   function checkAuth() {
-    fetch("/api/auth/check")
+    fetch("/api/auth/check", { credentials: "include" })
       .then((res) => res.json())
       .then((data) => setAuthed(data.authed))
       .catch(() => setAuthed(false))

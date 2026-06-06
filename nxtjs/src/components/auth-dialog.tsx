@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   Dialog,
   DialogContent,
@@ -36,6 +37,7 @@ function AuthDialog({
   onOpenChange: (open: boolean) => void
   onAuthSuccess: () => void
 }) {
+  const router = useRouter()
   const [tab, setTab] = useState("sign-in")
 
   // Sign in fields
@@ -77,6 +79,7 @@ function AuthDialog({
       const res = await fetch("/api/auth/sign-in", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ username: signInUsername, password: signInPassword }),
       })
       if (!res.ok) {
@@ -113,6 +116,7 @@ function AuthDialog({
       const res = await fetch("/api/auth/sign-up", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ username: signUpUsername, password: signUpPassword }),
       })
       if (!res.ok) {
@@ -126,6 +130,7 @@ function AuthDialog({
       }
       onAuthSuccess()
       handleClose()
+      router.push("/profile")
     } catch {
       setSignUpErrors({ form: "Something went wrong" })
     } finally {
