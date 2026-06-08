@@ -6,6 +6,7 @@ windows:
       - shell_command:
           - docker compose up 
       - shell_command:
-          - cd nxtjs && bun dev -p 1929 -H 0.0.0.0
+          - cd nxtjs && bunx nodemon --watch src --ext ts,tsx,js,mjs,css,html --exec "bun run build"
+          # - cd nxtjs && bun dev -p 1929 -H 0.0.0.0
       - shell_command:
           - bacon run-long
