@@ -3,6 +3,7 @@ use actix_web::{App, HttpServer, cookie::Key, middleware, web};
 use sea_orm::{Database, DatabaseConnection};
 use std::env;
 
+mod api;
 mod auth;
 mod entity;
 
@@ -39,10 +40,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(state.clone()))
-            .service(auth::auth_check)
-            .service(auth::sign_up)
-            .service(auth::sign_in)
-            .service(auth::sign_out)
+            .configure(api::configure)
             .wrap(SessionMiddleware::new(
                 CookieSessionStore::default(),
                 session_key.clone(),
